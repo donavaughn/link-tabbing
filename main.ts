@@ -44,6 +44,7 @@ export default class LinkTabbingPlugin extends Plugin {
 		this.addSettingTab(new LinkTabbingSettingTab(this.app, this));
 
 		this.registerEvent(this.app.workspace.on("active-leaf-change", () => this.clearFocusHighlight()));
+		this.registerDomEvent(document, "keydown", this.handleEnterKey);
 	}
 
 	onunload() {
@@ -112,6 +113,28 @@ export default class LinkTabbingPlugin extends Plugin {
 
 		return -1;
 	}
+
+	// Native Enter-on-focused-anchor behavior is a plain click, which replaces the
+	// current pane. For links reached via Tab/Shift+Tab we open them in a new tab
+	// instead, so cycling through search-style results doesn't lose your place.
+	private handleEnterKey = (evt: KeyboardEvent) => {
+		if (evt.key !== "Enter") return;
+		const active = document.activeElement;
+		if (!(active instanceof HTMLAnchorElement) || !active.classList.contains(FOCUS_CLASS)) return;
+
+		if (active.classList.contains("internal-link")) {
+			evt.preventDefault();
+			const linktext = active.dataset.href ?? active.getAttribute("href") ?? "";
+			if (!linktext) return;
+			const sourcePath = this.app.workspace.getActiveFile()?.path ?? "";
+			this.app.workspace.openLinkText(linktext, sourcePath, "tab");
+		} else if (active.classList.contains("external-link")) {
+			evt.preventDefault();
+			const href = active.getAttribute("href");
+			if (href) window.open(href, "_blank");
+		}
+		// Tags fall through to their native (in-app search) behavior.
+	};
 
 	private clearFocusHighlight() {
 		document.querySelectorAll(`.${FOCUS_CLASS}`).forEach((el) => el.classList.remove(FOCUS_CLASS));

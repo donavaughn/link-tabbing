@@ -6,7 +6,7 @@ Tab through the links on a note while in Reading view, without needing the mouse
 
 - **Tab** — jump to the next link in the note.
 - **Shift+Tab** — jump to the previous link.
-- **Enter** — open the focused link (native Obsidian behavior).
+- **Enter** — open the focused link in a new tab, so cycling through results doesn't replace the note you're tabbing through.
 
 Both hotkeys only take effect while a note is in Reading view, so they won't interfere with anything in Edit mode or Live Preview. Rebind them under Settings → Hotkeys if they clash with something else in your setup.
 
