@@ -10,13 +10,9 @@ Link Tabbing lets you jump between the links on a note using the keyboard, while
 
 ## Installing
 
-Link Tabbing isn't in the official Community Plugins directory yet, so for now it's installed manually into a vault:
+Link Tabbing isn't in the official Community Plugins directory yet. See **[INSTALL_OTHER_DEVICES.md](INSTALL_OTHER_DEVICES.md)** for the recommended way to install it on any vault or device (via [BRAT](https://github.com/TfTHacker/obsidian42-brat), pulling from the project's [GitHub Releases](https://github.com/donavaughn/link-tabbing/releases)) — that's the path to use on a new machine, including Windows.
 
-1. Get the plugin's three files — `manifest.json`, `main.js`, `styles.css` — into a folder named `link-tabbing` inside your vault's `.obsidian/plugins/` folder. (`.obsidian` is hidden; you may need to enable hidden files in Finder/Explorer, or use a terminal.)
-2. In Obsidian, go to **Settings → Community plugins**.
-   - If you see a "Turn on community plugins" prompt, click it — plugins can't run until this is enabled.
-3. **Fully quit and reopen Obsidian** (not just close the note or reload the window). Obsidian only scans for new plugin folders when a vault loads.
-4. Back in **Settings → Community plugins**, find "Link Tabbing" under **Installed plugins** and toggle it on.
+If you're setting this up on the same computer the plugin's source code lives on, a symlink from `.obsidian/plugins/link-tabbing` to the project folder also works and picks up rebuilds automatically; ask whoever maintains the project for that path.
 
 ## Using it
 
