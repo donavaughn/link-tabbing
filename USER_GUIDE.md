@@ -1,6 +1,6 @@
 # User Guide — Link Tabbing
 
-Link Tabbing lets you jump between the links on a note using the keyboard, while reading it — no mouse required. It works with ordinary links you've written, and with links that show up inside [Dataview](https://github.com/blacksmithgu/obsidian-dataview) query results (tables, lists, tasks).
+Link Tabbing lets you jump between the links and task checkboxes on a note using the keyboard, while reading it — no mouse required. It works with ordinary links and checkboxes you've written, and with ones that show up inside [Dataview](https://github.com/blacksmithgu/obsidian-dataview) query results (tables, lists, tasks).
 
 ## Requirements
 
@@ -20,15 +20,16 @@ With a note open in Reading view:
 
 | Key | Action |
 |---|---|
-| **Tab** | Move to the next link on the page |
-| **Shift+Tab** | Move to the previous link |
+| **Tab** | Move to the next link or checkbox on the page |
+| **Shift+Tab** | Move to the previous one |
 | **Enter** | Open the currently-highlighted link, in a new tab |
+| **Space** | Toggle the currently-highlighted checkbox (normal Obsidian behavior — not specific to this plugin) |
 
-The link you're currently on gets a visible outline so you can always tell where you are. Pressing Tab past the last link wraps back around to the first (this is configurable — see Settings below).
+The item you're currently on gets a visible outline so you can always tell where you are. Links and checkboxes are visited together, in the order they appear on the page. Pressing Tab past the last one wraps back around to the first (this is configurable — see Settings below).
 
 **Enter opens in a new tab on purpose.** If it opened in the same pane, checking a link would replace the note you were tabbing through, and you'd lose your place in the list. Opening in a new tab keeps the original note (and your position in it) exactly where you left it, so you can keep tabbing through the rest of the results.
 
-This applies to internal links (other notes), external links (opens your default browser), and — because it's a plain keyboard focus — to links inside Dataview `TABLE`, `LIST`, and `TASK` query results exactly the same way.
+This applies to internal links (other notes), external links (opens your default browser), and — because it's a plain keyboard focus — to links and task checkboxes inside Dataview `TABLE`, `LIST`, and `TASK` query results exactly the same way.
 
 ### A note on timing with Dataview
 
@@ -59,7 +60,7 @@ The default keys are Tab and Shift+Tab, but they only do anything while you're i
 - Confirm the note is in Reading view, not Edit mode or Live Preview.
 - Check Settings → Hotkeys in case something else has claimed Tab or Shift+Tab, or in case Link Tabbing's own hotkeys were accidentally cleared.
 
-**"No links found in this note" notice.**
+**"No links or checkboxes found in this note" notice.**
 - The note genuinely has no `<a>` links in the rendered Reading view. If you expected Dataview results here, give the query a moment to finish rendering and try again.
 
 **Enter opens the link in the same pane instead of a new tab.**

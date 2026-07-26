@@ -13,7 +13,7 @@ const DEFAULT_SETTINGS: LinkTabbingSettings = {
 const FOCUS_CLASS = "link-tabbing-focused";
 
 interface ViewState {
-	links: HTMLAnchorElement[];
+	stops: HTMLElement[];
 	index: number;
 }
 
@@ -29,14 +29,14 @@ export default class LinkTabbingPlugin extends Plugin {
 
 		this.addCommand({
 			id: "next-link",
-			name: "Tab to next link",
+			name: "Tab to next link or checkbox",
 			checkCallback: (checking) => this.handleTab(checking, 1),
 			hotkeys: [{ modifiers: [], key: "Tab" }],
 		});
 
 		this.addCommand({
 			id: "previous-link",
-			name: "Tab to previous link",
+			name: "Tab to previous link or checkbox",
 			checkCallback: (checking) => this.handleTab(checking, -1),
 			hotkeys: [{ modifiers: ["Shift"], key: "Tab" }],
 		});
@@ -57,13 +57,14 @@ export default class LinkTabbingPlugin extends Plugin {
 		return view.previewMode?.containerEl ?? null;
 	}
 
-	private collectLinks(container: HTMLElement): HTMLAnchorElement[] {
+	private collectStops(container: HTMLElement): HTMLElement[] {
 		// Queried fresh on every keypress (not cached from file-open) so that links
-		// Dataview injects asynchronously after its query resolves are picked up too.
-		const selector = this.settings.includeTags
-			? "a.internal-link, a.external-link, a.tag"
-			: "a.internal-link, a.external-link";
-		return Array.from(container.querySelectorAll<HTMLAnchorElement>(selector)).filter(
+		// and checkboxes Dataview injects asynchronously after its query resolves
+		// are picked up too. querySelectorAll returns matches in document order
+		// regardless of selector order, so links and checkboxes interleave correctly.
+		const selectors = ["a.internal-link", "a.external-link", "input.task-list-item-checkbox"];
+		if (this.settings.includeTags) selectors.push("a.tag");
+		return Array.from(container.querySelectorAll<HTMLElement>(selectors.join(", "))).filter(
 			(el) => el.offsetParent !== null
 		);
 	}
@@ -73,41 +74,41 @@ export default class LinkTabbingPlugin extends Plugin {
 		if (!container) return false;
 		if (checking) return true;
 
-		const links = this.collectLinks(container);
-		if (links.length === 0) {
-			new Notice("Link Tabbing: no links found in this note");
+		const stops = this.collectStops(container);
+		if (stops.length === 0) {
+			new Notice("Link Tabbing: no links or checkboxes found in this note");
 			return true;
 		}
 
-		const currentIndex = this.resolveCurrentIndex(container, links);
+		const currentIndex = this.resolveCurrentIndex(container, stops);
 		let nextIndex = currentIndex + direction;
-		if (nextIndex >= links.length) {
-			nextIndex = this.settings.wrapAround ? 0 : links.length - 1;
+		if (nextIndex >= stops.length) {
+			nextIndex = this.settings.wrapAround ? 0 : stops.length - 1;
 		} else if (nextIndex < 0) {
-			nextIndex = this.settings.wrapAround ? links.length - 1 : 0;
+			nextIndex = this.settings.wrapAround ? stops.length - 1 : 0;
 		}
 
 		this.clearFocusHighlight();
-		const target = links[nextIndex];
+		const target = stops[nextIndex];
 		target.classList.add(FOCUS_CLASS);
 		target.focus({ preventScroll: true });
 		target.scrollIntoView({ block: "center", behavior: "smooth" });
 
-		this.viewStates.set(container, { links, index: nextIndex });
+		this.viewStates.set(container, { stops, index: nextIndex });
 		return true;
 	}
 
-	private resolveCurrentIndex(container: HTMLElement, links: HTMLAnchorElement[]): number {
+	private resolveCurrentIndex(container: HTMLElement, stops: HTMLElement[]): number {
 		const active = document.activeElement;
-		if (active instanceof HTMLAnchorElement) {
-			const activeIndex = links.indexOf(active);
+		if (active instanceof HTMLElement) {
+			const activeIndex = stops.indexOf(active);
 			if (activeIndex !== -1) return activeIndex;
 		}
 
 		const state = this.viewStates.get(container);
 		if (state) {
-			const previousTarget = state.links[state.index];
-			const carriedIndex = previousTarget ? links.indexOf(previousTarget) : -1;
+			const previousTarget = state.stops[state.index];
+			const carriedIndex = previousTarget ? stops.indexOf(previousTarget) : -1;
 			if (carriedIndex !== -1) return carriedIndex;
 		}
 

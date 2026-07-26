@@ -4,9 +4,9 @@ This document explains the internal design of the plugin and the reasoning behin
 
 ## Problem
 
-Obsidian's Reading view renders internal links, external links, and (via Dataview) query results as plain `<a>` elements. Native browser Tab already moves focus between them, but it does so across the *entire app* — ribbon icons, sidebars, the file explorer, other panes — not just the links inside the note you're reading. Reaching the Nth link in a long note, or in a Dataview-generated table of results, means holding Tab through dozens of unrelated UI elements first.
+Obsidian's Reading view renders internal links, external links, and task checkboxes — including, via Dataview, query results — as plain `<a>` and `<input type="checkbox">` elements. Native browser Tab already moves focus between them, but it does so across the *entire app* — ribbon icons, sidebars, the file explorer, other panes — not just the elements inside the note you're reading. Reaching the Nth link or checkbox in a long note, or in a Dataview-generated table/task list of results, means holding Tab through dozens of unrelated UI elements first.
 
-The goal: scope Tab/Shift+Tab to just the links inside the currently-open note in Reading view, cycle through them, and make sure that scan includes links Dataview renders — which happens *after* Obsidian's own initial render.
+The goal: scope Tab/Shift+Tab to just the links and checkboxes inside the currently-open note in Reading view, cycle through them in document order, and make sure that scan includes elements Dataview renders — which happens *after* Obsidian's own initial render.
 
 ## Non-goals
 
@@ -27,17 +27,17 @@ LinkTabbingPlugin (Plugin)
 └── addSettingTab(LinkTabbingSettingTab)
 ```
 
-State is a `WeakMap<HTMLElement, ViewState>`, keyed by the Reading view's `containerEl`, holding the last-computed link list and index. It's a `WeakMap` (not a `Map` on the view) so it doesn't need manual cleanup as leaves/views are destroyed.
+State is a `WeakMap<HTMLElement, ViewState>`, keyed by the Reading view's `containerEl`, holding the last-computed stop list (links and checkboxes) and index. It's a `WeakMap` (not a `Map` on the view) so it doesn't need manual cleanup as leaves/views are destroyed.
 
 ## Key decisions
 
 ### Re-scan the DOM on every keypress, rather than caching per file-open
 
-This is the decision that makes the plugin work with Dataview at all. Dataview registers a Markdown post-processor that runs its query engine and patches the DOM *asynchronously*, after Obsidian's initial render pass completes. A link list built once when the note opens (e.g. via `registerMarkdownPostProcessor` or a `file-open` handler) would systematically miss Dataview's results, because at that point they don't exist in the DOM yet.
+This is the decision that makes the plugin work with Dataview at all. Dataview registers a Markdown post-processor that runs its query engine and patches the DOM *asynchronously*, after Obsidian's initial render pass completes. A stop list built once when the note opens (e.g. via `registerMarkdownPostProcessor` or a `file-open` handler) would systematically miss Dataview's results — links or `TASK` query checkboxes alike — because at that point they don't exist in the DOM yet.
 
-Instead, `collectLinks()` runs `container.querySelectorAll(...)` fresh on every Tab/Shift+Tab press. Whatever has rendered by the time the user presses the key — including anything Dataview has since injected — is what gets included. No `MutationObserver`, no listening for Dataview's own render-complete events, no dependency on Dataview's API at all. The plugin doesn't know or care that Dataview exists; it only cares what's currently in the DOM.
+Instead, `collectStops()` runs `container.querySelectorAll(...)` fresh on every Tab/Shift+Tab press, matching `a.internal-link`, `a.external-link`, `input.task-list-item-checkbox`, and (optionally) `a.tag` in a single selector list. `querySelectorAll` returns matches in document order regardless of selector order, so links and checkboxes interleave correctly as a single sequence rather than being grouped by type. Whatever has rendered by the time the user presses the key — including anything Dataview has since injected — is what gets included. No `MutationObserver`, no listening for Dataview's own render-complete events, no dependency on Dataview's API at all. The plugin doesn't know or care that Dataview exists; it only cares what's currently in the DOM.
 
-**Trade-off accepted:** if a user presses Tab in the first tens-of-milliseconds after opening a note, before a slow Dataview query has resolved, that render's links won't be included yet. The next press (a moment later) will include them, since it re-scans. This was judged an acceptable edge case against the alternative complexity of a MutationObserver-based cache-invalidation scheme, which would need its own debouncing and lifecycle management for comparatively little benefit.
+**Trade-off accepted:** if a user presses Tab in the first tens-of-milliseconds after opening a note, before a slow Dataview query has resolved, that render's stops won't be included yet. The next press (a moment later) will include them, since it re-scans. This was judged an acceptable edge case against the alternative complexity of a MutationObserver-based cache-invalidation scheme, which would need its own debouncing and lifecycle management for comparatively little benefit.
 
 ### State keyed by `containerEl`, not by `MarkdownView`
 
@@ -45,34 +45,36 @@ Instead, `collectLinks()` runs `container.querySelectorAll(...)` fresh on every 
 
 ### Resolving "current position" with a three-tier fallback
 
-`resolveCurrentIndex()` decides where in the link list the cursor "is" before advancing:
+`resolveCurrentIndex()` decides where in the stop list the cursor "is" before advancing:
 
-1. If `document.activeElement` is one of the currently-collected links, use its index. This keeps the plugin in sync if the user manually clicked a link instead of tabbing to it.
-2. Otherwise, if there's stored state for this container, try to find the previously-tabbed-to element in the *new* link list (`indexOf`). This survives a partial DOM re-render (e.g. Dataview re-querying) as long as the same anchor element is reused.
-3. Otherwise, `-1`, so the first Tab press lands on index 0 and the first Shift+Tab lands on the last link.
+1. If `document.activeElement` is one of the currently-collected stops, use its index. This keeps the plugin in sync if the user manually clicked a link or checkbox instead of tabbing to it.
+2. Otherwise, if there's stored state for this container, try to find the previously-tabbed-to element in the *new* stop list (`indexOf`). This survives a partial DOM re-render (e.g. Dataview re-querying) as long as the same element is reused.
+3. Otherwise, `-1`, so the first Tab press lands on index 0 and the first Shift+Tab lands on the last stop.
 
 ### Visual highlight via CSS class, not just native focus
 
-Anchor elements are natively focusable, so `.focus()` alone would work in principle — but many Obsidian themes suppress or barely style the default focus ring on links, making it hard to tell where you are. `link-tabbing-focused` (styles.css) adds an explicit, theme-aware outline (`var(--interactive-accent)`) on top of native focus, and is added/removed by the plugin rather than relying on `:focus-visible` CSS alone, since we also need a JS-readable marker: `handleEnterKey` uses this exact class to decide whether Enter should be intercepted at all (see below).
+Anchors and checkbox inputs are natively focusable, so `.focus()` alone would work in principle — but many Obsidian themes suppress or barely style the default focus ring on these elements, making it hard to tell where you are. `link-tabbing-focused` (styles.css) adds an explicit, theme-aware outline (`var(--interactive-accent)`) on top of native focus, and is added/removed by the plugin rather than relying on `:focus-visible` CSS alone, since we also need a JS-readable marker: `handleEnterKey` uses this exact class to decide whether Enter should be intercepted at all (see below).
 
 ### Enter opens in a new tab, but only for tabbed-to links
 
 Native behavior for a focused `<a>` is that Enter triggers a synthetic click, which — for internal links — replaces the current pane's content. That defeats the purpose of tabbing through a list of results: each link you check knocks you out of the list you were cycling through.
 
-`handleEnterKey` intercepts `keydown` on `document` and checks two things before acting: the key is Enter, and `document.activeElement` carries the `link-tabbing-focused` class. That second check is deliberate — it scopes the override to links the *plugin* navigated you to, not every focused anchor in the app. A link you focused by clicking it manually (no highlight class) keeps its native single-click-to-navigate behavior; only the cycling workflow gets the "keep my place" treatment.
+`handleEnterKey` intercepts `keydown` on `document` and checks two things before acting: the key is Enter, and `document.activeElement` carries the `link-tabbing-focused` class *and* is an anchor. That second check is deliberate — it scopes the override to links the *plugin* navigated you to, not every focused anchor in the app. A link you focused by clicking it manually (no highlight class) keeps its native single-click-to-navigate behavior; only the cycling workflow gets the "keep my place" treatment.
 
 Given a match, it branches on link type:
 - `a.internal-link` → `preventDefault()`, then `workspace.openLinkText(linktext, sourcePath, "tab")`, reading the target from `data-href` (falling back to `href`).
 - `a.external-link` → `preventDefault()`, then `window.open(href, "_blank")`.
 - Anything else (e.g. `a.tag`, when the "include tags" setting is on) — no `preventDefault()`, so native behavior (in-app tag search) proceeds untouched.
 
+Checkboxes are deliberately left out of this interception: the `instanceof HTMLAnchorElement` check means Enter does nothing special on a tabbed-to checkbox, and Space keeps working exactly as Obsidian's own Reading view already handles it (toggling the underlying task's checked state and rewriting the source line). There was no "replaces the pane" problem to solve for checkboxes, so no override was needed.
+
 ### Command scoping via `checkCallback`, not a global key capture
 
 Both commands use `checkCallback` to report "unavailable" whenever the active view isn't a `MarkdownView` in preview mode. This is what lets default hotkeys of plain `Tab` / `Shift+Tab` be safe to ship: Obsidian only invokes the command (and only consumes the keypress) when the check passes, so Edit mode, Live Preview, the file explorer, and every other pane keep their normal Tab behavior untouched.
 
-### Filtering to visible links only
+### Filtering to visible stops only
 
-`collectLinks()` filters on `el.offsetParent !== null`, excluding links inside collapsed callouts, folded headings, or hidden Dataview rows. Tabbing to an invisible link would be disorienting (`scrollIntoView` on a `display: none` ancestor does nothing useful) and there's no user-facing way to "see" you landed on it.
+`collectStops()` filters on `el.offsetParent !== null`, excluding links and checkboxes inside collapsed callouts, folded headings, or hidden Dataview rows. Tabbing to an invisible stop would be disorienting (`scrollIntoView` on a `display: none` ancestor does nothing useful) and there's no user-facing way to "see" you landed on it.
 
 ## Alternatives considered
 

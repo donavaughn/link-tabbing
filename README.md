@@ -1,6 +1,6 @@
 # Link Tabbing
 
-Tab through the links on a note while in Reading view, without needing the mouse. Works with links rendered by [Dataview](https://github.com/blacksmithgu/obsidian-dataview) query results (tables, lists, tasks), not just links written directly in the note.
+Tab through the links and task checkboxes on a note while in Reading view, without needing the mouse. Works with links and checkboxes rendered by [Dataview](https://github.com/blacksmithgu/obsidian-dataview) query results (tables, lists, tasks), not just ones written directly in the note.
 
 - **[User Guide](USER_GUIDE.md)** — installing, using, and troubleshooting the plugin.
 - **[Installing on Another Device](INSTALL_OTHER_DEVICES.md)** — getting it onto a new vault or machine (e.g. Windows) via BRAT.
@@ -8,13 +8,15 @@ Tab through the links on a note while in Reading view, without needing the mouse
 
 ## Usage
 
-- **Tab** — jump to the next link in the note.
-- **Shift+Tab** — jump to the previous link.
-- **Enter** — open the focused link in a new tab, so cycling through results doesn't replace the note you're tabbing through.
+- **Tab** — jump to the next link or task checkbox in the note.
+- **Shift+Tab** — jump to the previous one.
+- **Enter** — open the focused link in a new tab, so cycling through results doesn't replace the note you're tabbing through. On a checkbox, use Space to toggle it (normal Obsidian behavior).
+
+Links and checkboxes are visited in the order they appear on the page, interleaved together — not links first and then checkboxes.
 
 Both hotkeys only take effect while a note is in Reading view, so they won't interfere with anything in Edit mode or Live Preview. Rebind them under Settings → Hotkeys if they clash with something else in your setup.
 
-The plugin re-scans the page for links every time you press Tab, rather than caching a list when the note first opens. That's what makes it Dataview-safe: Dataview renders its query results asynchronously after its own query engine resolves, so a cached list built at file-open time would miss them. Scanning fresh means whatever Dataview has rendered by the time you press the key gets included.
+The plugin re-scans the page for links and checkboxes every time you press Tab, rather than caching a list when the note first opens. That's what makes it Dataview-safe: Dataview renders its query results asynchronously after its own query engine resolves, so a cached list built at file-open time would miss them. Scanning fresh means whatever Dataview has rendered by the time you press the key gets included.
 
 ## Settings
 
