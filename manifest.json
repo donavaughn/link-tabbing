@@ -4,7 +4,7 @@
 	"version": "1.0.0",
 	"minAppVersion": "1.4.0",
 	"description": "Tab through links in Reading view with the keyboard, including links rendered dynamically by Dataview queries.",
-	"author": "Donavaughn",
+	"author": "Insearchof",
 	"authorUrl": "",
 	"isDesktopOnly": false
 }

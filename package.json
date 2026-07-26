@@ -13,7 +13,7 @@
 		"obsidian-plugin",
 		"dataview"
 	],
-	"author": "Donavaughn",
+	"author": "Insearchof",
 	"license": "MIT",
 	"devDependencies": {
 		"@types/node": "^20.11.0",
