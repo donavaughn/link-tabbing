@@ -2,6 +2,9 @@
 
 Tab through the links on a note while in Reading view, without needing the mouse. Works with links rendered by [Dataview](https://github.com/blacksmithgu/obsidian-dataview) query results (tables, lists, tasks), not just links written directly in the note.
 
+- **[User Guide](USER_GUIDE.md)** — installing, using, and troubleshooting the plugin.
+- **[Design Document](DESIGN.md)** — architecture and the reasoning behind key decisions (especially the Dataview compatibility approach).
+
 ## Usage
 
 - **Tab** — jump to the next link in the note.
